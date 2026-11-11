@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f5f2">
+<meta name="description" content="Registro de palomos deportivos: pedigrí, concursos y cría.">
+<title>Colombaire</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="fuentes/fuentes.css">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-top="no">
+<header class="top">
+  <button id="back" class="icon-btn" type="button" aria-label="Volver">
+    <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5m6-6-6 6 6 6"/></svg>
+  </button>
+  <h1 id="title">Colombaire</h1>
+  <a id="accion" class="icon-btn" href="#/" hidden aria-label="Editar">
+    <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg>
+  </a>
+</header>
+
+<div id="estadoRed" class="estado-red" role="status" hidden></div>
+<main id="app"><p class="muted">Cargando…</p></main>
+
+<a id="fab" class="fab" href="#/editar/nuevo" hidden>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+  Añadir palomo
+</a>
+
+<nav class="tabs" aria-label="Secciones">
+  <a href="#/" data-tab="lista">
+    <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 7h14M5 12h14M5 17h14"/></svg></span>
+    Palomos
+  </a>
+  <a href="#/cria" data-tab="cria">
+    <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg></span>
+    Cría
+  </a>
+  <a href="#/familias" data-tab="familias">
+    <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21v-9M12 12H6V8M12 12h6V8M6 8V5M18 8V5"/><circle cx="12" cy="12" r="1.5"/></svg></span>
+    Árbol
+  </a>
+  <a href="#/sanidad" data-tab="sanidad">
+    <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4h6v5h5v6h-5v5H9v-5H4V9h5z"/></svg></span>
+    Sanidad
+  </a>
+  <a href="#/mas" data-tab="mas">
+    <span class="pill"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-7 8-7s8 2.6 8 7"/></svg></span>
+    Cuenta
+  </a>
+</nav>
+
+<div id="modal" class="modal" hidden></div>
+<div id="toast" class="toast" role="status" hidden></div>
+
+<script src="config.js"></script>
+<script src="lib/supabase.js"></script>
+<script src="lib/qrcode.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

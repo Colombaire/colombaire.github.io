@@ -1,0 +1,8 @@
+{
+  "name": "colombaire",
+  "private": true,
+  "description": "Registro de palomos deportivos (colombicultura).",
+  "scripts": {
+    "test": "node --test"
+  }
+}

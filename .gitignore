@@ -1,0 +1,17 @@
+# Solo se publica la app. Quedan fuera las pruebas y los materiales de trabajo.
+video/
+propuestas/
+disenos-muestra/
+media/fondo.mp4
+media/fondo.jpg
+.claude/
+node_modules/
+*.log
+
+# Fotos de la libreta (privadas) y archivos temporales de Supabase
+WhatsApp Image*
+supabase/.temp/
+
+# Datos privados (no se suben nunca)
+privado/
+datos/
