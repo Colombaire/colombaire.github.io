@@ -1,5 +1,5 @@
 'use strict';
-/* Carga app.js tal cual en un entorno simulado (sin navegador) para poder probar sus funciones desde Node.
+/* Carga los archivos de js/ (en el orden de index.html) tal cual en un entorno simulado (sin navegador) para poder probar sus funciones desde Node.
    No hace falta instalar nada: solo Node 20 o más. Uso: `npm test` (o `node --test tests/`). */
 const vm = require('node:vm');
 const fs = require('node:fs');
@@ -29,7 +29,10 @@ function cargarApp({ localStorage = {} } = {}) {
   ctx.window = ctx; ctx.MI_PALOMAR_CONFIG = {};
   ctx.addEventListener = () => {}; ctx.scrollTo = () => {};
   vm.createContext(ctx);
-  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'app.js'), 'utf8'), ctx, { filename: 'app.js' });
+  const raiz = path.join(__dirname, '..');
+  const scripts = [...fs.readFileSync(path.join(raiz, 'index.html'), 'utf8').matchAll(/<script src="(js\/[^"]+)"/g)].map(m => m[1]);
+  // Se juntan en un solo programa, como si fueran etiquetas <script> seguidas que comparten ámbito.
+  vm.runInContext(scripts.map(f => fs.readFileSync(path.join(raiz, f), 'utf8')).join('\n'), ctx, { filename: 'js/app-completa.js' });
   // Evalúa una expresión dentro de la app (sirve también para constantes y funciones no globales).
   const ev = codigo => vm.runInContext(codigo, ctx);
   return { ctx, ev, almacen };

@@ -18,9 +18,9 @@ La app es **offline-first**: los datos viven en el dispositivo (IndexedDB) y se 
 
 ## Cuentas y acceso
 
-La cuenta es **obligatoria** y el registro es **solo por invitación**.
+La cuenta es **obligatoria** y **cada usuario se crea la suya** (objetivo: registro abierto; hoy el registro sigue cerrado en Supabase y se abrirá al preparar la app para más usuarios, ver PLAN.md).
 
-1. La persona administradora da de alta el correo de cada usuario en Supabase (ver «Puesta en marcha»).
+1. Hoy, mientras el registro siga cerrado, la persona administradora da de alta el correo en Supabase (ver «Puesta en marcha»).
 2. **Primera vez:** en un dispositivo donde nadie ha entrado nunca, la app abre directamente **«Active su cuenta»** (solo pide el correo, sin contraseña). El usuario escribe su correo y recibe un **código de 6 cifras** (caduca en 10 minutos). Escribirlo confirma que el correo es suyo.
 3. **Antes de usar nada**, la app le obliga a elegir una contraseña propia (mínimo 8 caracteres, con letras y un número, nada obvio). Esto ocurre siempre que se entra con un código.
 4. Las veces siguientes entra con correo y contraseña. La sesión queda guardada y la app funciona sin conexión.
@@ -34,7 +34,7 @@ Medidas de privacidad:
 
   ```sql
   update auth.users
-  set raw_user_meta_data = coalesce(raw_user_meta_data, '{}'::jsonb) || '{"recuperar_datos_locales": true}'::jsonb
+  set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"recuperar_datos_locales": true}'::jsonb
   where email = 'correo@ejemplo.com';
   ```
 - «Cerrar sesión» guarda todo en la nube y vacía el dispositivo; si no se pudo guardar, descarga antes una copia.
@@ -46,7 +46,7 @@ Medidas de privacidad:
 **En Supabase** (los nombres de los menús pueden cambiar; compruébelos en el panel):
 
 1. Crear un proyecto (región de Europa).
-2. *SQL Editor*: pegar y ejecutar `supabase/schema.sql` (tablas `palomos` y `resultados` y sus reglas por usuario).
+2. *SQL Editor*: pegar y ejecutar `supabase/schema.sql` (tablas `palomos` y `resultados`, sus reglas por usuario, los límites de tamaño y de número de registros por cuenta, y la función para que cada usuario pueda borrar su cuenta). Se puede volver a ejecutar sin riesgo al actualizar la app: no borra datos.
 3. *Authentication → Sign In / Providers → Email*: **desactivar «Allow new users to sign up»** (registro cerrado) y dejar activa la confirmación de correo. Caducidad del código: 600 segundos. Longitud mínima de contraseña: 8.
 4. *Authentication → SMTP Settings*: conectar un servicio de envío de correo (por ejemplo Resend o Brevo, con plan gratuito). El correo incluido en Supabase está muy limitado y, hasta donde se sabe, solo envía a miembros del equipo del proyecto.
 5. *Authentication → Email Templates → Magic Link*: que el correo muestre el código en español, por ejemplo:
@@ -63,6 +63,10 @@ Medidas de privacidad:
 Sin `config.js` configurado, la app muestra «La app no está configurada».
 
 **Dirección de la app:** GitHub Pages u otro alojamiento estático con `https`. Para instalarla en el móvil: «Cuenta → Instalar en el móvil (código QR)».
+
+## Cría (nidadas)
+
+En la pestaña **Cría**: «Nueva nidada» (elegir macho, hembra y fecha del primer huevo; sale la consanguinidad y la probabilidad de los pichones). Cada nidada guarda las fechas de los dos huevos, el estado de cada huevo (fértil, claro, roto), los pichones (nacimiento, anilla, sexo, estado) y notas. La eclosión esperada se calcula a 18 días del segundo huevo (si no se apunta, 2 días después del primero). Al anillar un pichón, **«Crear su ficha»** crea el palomo con su padre y su madre ya puestos, así entra en el árbol y la genética. La pestaña muestra avisos (eclosión próxima, pichones por anillar) y el historial de cada pareja. Las nidadas van en la copia de seguridad y en la nube (tabla `nidadas`; las copias antiguas siguen valiendo).
 
 ## Copias de seguridad
 
@@ -116,7 +120,7 @@ Abrir http://localhost:8131
 
 ## Valor genético y probabilidad de los pichones
 
-La app estima el valor genético de cada palomo (en `app.js`, sección «Genética»):
+La app estima el valor genético de cada palomo (en `js/genetica.js`):
 
 1. **Puntos por resultado** = peso del campeonato × factor del puesto. Pesos: comarcal 1, comarcal de jóvenes 0,8, Copa Federación 1,3, intercomarcal 1,5, regional de jóvenes 1,6, regional 2, Copa Comunitats 2,5, Comunidad Valenciana 3, CCAA 3,5, Copa del Rey 4. Factor del puesto: 1 / (1 + (puesto − 1) / 10). Sin puesto: 0,4.
 2. **Rendimiento** = mejor resultado + ½ del 2º + ¼ del 3º, expresado en desviaciones típicas respecto a la media del palomar.
