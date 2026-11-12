@@ -28,13 +28,16 @@ test('sumarMeses respeta el fin de mes y los años bisiestos', () => {
   assert.equal(ev("sumarMeses('2026-10-01', 12)"), '2027-10-01');
 });
 
-test('vencimientos: vacunas a 12 meses; desparasitaciones sin aviso hasta configurarlas', () => {
+test('vencimientos: paramixovirus a 12 meses, desparasitaciones a 6; coccidios, tricomonas y otros sin aviso', () => {
   const { ev } = cargarApp();
   assert.equal(ev("vencimiento({ tipo: 'paramixovirus', fecha: '2026-03-10' })"), '2027-03-10');
-  assert.equal(ev("vencimiento({ tipo: 'interna', fecha: '2026-03-10' })"), null);
+  assert.equal(ev("vencimiento({ tipo: 'interna', fecha: '2026-03-10' })"), '2026-09-10');
+  assert.equal(ev("vencimiento({ tipo: 'externa', fecha: '2026-03-10' })"), '2026-09-10');
+  assert.equal(ev("vencimiento({ tipo: 'coccidios', fecha: '2026-03-10' })"), null);
+  assert.equal(ev("vencimiento({ tipo: 'tricomonas', fecha: '2026-03-10' })"), null);
   assert.equal(ev("vencimiento({ tipo: 'otro', fecha: '2026-03-10' })"), null);
-  const c = cargarApp({ localStorage: { sanidadFrecuencia: '{"interna":6,"paramixovirus":0}' } });
-  assert.equal(c.ev("vencimiento({ tipo: 'interna', fecha: '2026-03-10' })"), '2026-09-10');
+  const c = cargarApp({ localStorage: { sanidadFrecuencia: '{"interna":3,"paramixovirus":0}' } });
+  assert.equal(c.ev("vencimiento({ tipo: 'interna', fecha: '2026-03-10' })"), '2026-06-10');
   assert.equal(c.ev("vencimiento({ tipo: 'paramixovirus', fecha: '2026-03-10' })"), null);
 });
 

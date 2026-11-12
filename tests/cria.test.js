@@ -75,8 +75,20 @@ test('cría: historial de la pareja cuenta pichones, fichas y resultados', () =>
       state.nidadas.set('n1', { id: 'n1', machoId: 'm1', hembraId: 'h1', huevos: [{ id: 'x' }, { id: 'y' }], pichones: [{ id: 'a', palomoId: 'p1', estado: 'vivo' }, { id: 'b', estado: 'muerto' }] });
       state.nidadas.set('n2', { id: 'n2', machoId: 'm1', hembraId: 'h2', huevos: [], pichones: [] });`);
   assert.deepEqual(JSON.parse(ev(`JSON.stringify(historialPareja('m1', 'h1'))`)),
-    { nidadas: 1, huevos: 2, pichones: 2, vivos: 1, fichas: 1, conResultados: 1, mejorPuesto: 3 });
+    { nidadas: 1, huevos: 2, pichones: 2, vivos: 1, exito: 100, fichas: 1, conResultados: 1, mejorPuesto: 3 });
   assert.equal(JSON.parse(ev(`JSON.stringify(parejasCria())`)).length, 2);
+});
+
+test('cría: avisos del calendario (.ics) con alarma para la eclosión y el anillado a los 8 días', () => {
+  const { ev } = conPalomos();
+  ev(`state.nidadas.set('n1', { id: 'n1', machoId: 'm1', hembraId: 'h1', fecha1: '2026-03-01', huevos: [], pichones: [] });`);
+  const e = JSON.parse(ev(`JSON.stringify(eventosCalendario(state.nidadas.get('n1')).map(x => x.fecha))`));
+  assert.deepEqual(e, ['2026-03-21', '2026-03-29']);
+  const ics = ev(`crearICS(state.nidadas.get('n1'))`);
+  assert.match(ics, /^BEGIN:VCALENDAR\r\n/); assert.match(ics, /DTSTART:20260329T090000/); assert.match(ics, /BEGIN:VALARM/);
+  assert.match(ics, /SUMMARY:Anillar el pichón de Lucero × Estrella/);
+  ev(`state.nidadas.get('n1').pichones = [{ id: 'a', nacimiento: '2026-03-22', anilla: '', estado: 'vivo' }]`);
+  assert.deepEqual(JSON.parse(ev(`JSON.stringify(eventosCalendario(state.nidadas.get('n1')).map(x => x.fecha))`)), ['2026-03-30']);
 });
 
 test('seguridad de las nidadas: se limpian ids, pichones y huevos manipulados', () => {

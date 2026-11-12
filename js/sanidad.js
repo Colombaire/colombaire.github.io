@@ -7,8 +7,11 @@ const TRATOS = {
   paramixovirus: { nombre: 'Vacuna paramixovirus', cadaMeses: 12 },
   salmonela: { nombre: 'Vacuna salmonela', cadaMeses: 12 },
   viruela: { nombre: 'Vacuna viruela', cadaMeses: 12 },
-  interna: { nombre: 'Desparasitación interna' },
-  externa: { nombre: 'Desparasitación externa' },
+  interna: { nombre: 'Desparasitación interna', cadaMeses: 6 },
+  externa: { nombre: 'Desparasitación externa', cadaMeses: 6 },
+  // Solo se ponen a un palomo concreto cuando da síntomas: no tienen calendario ni aviso.
+  coccidios: { nombre: 'Coccidios', individual: true },
+  tricomonas: { nombre: 'Tricomonas', individual: true },
   otro: { nombre: 'Otro tratamiento' },
 };
 const fechaES = f => f ? String(f).split('-').reverse().join('/') : '';
@@ -71,8 +74,8 @@ function calendarioSanidad() {
 const textoFrecuencia = n => n === 0 ? 'Sin aviso' : n === 12 ? 'Cada año' : n === 24 ? 'Cada 2 años' : `Cada ${n} meses`;
 function ajustesFrecuencia() {
   return `<p class="seccion">Cada cuánto se repite</p><div class="card">
-    <p class="muted" style="margin:0">Con esto la app avisa cuando toca repetir cada tratamiento. Solo avisa de los palomos que ya lo tienen apuntado una vez. Se guarda en este dispositivo.</p>
-    ${Object.keys(TRATOS).filter(k => k !== 'otro').map(k => campo('f-' + k, TRATOS[k].nombre, `<select data-freq="${k}" id="f-${k}">${FRECUENCIAS.map(n => `<option value="${n}" ${mesesDe(k) === n ? 'selected' : ''}>${textoFrecuencia(n)}</option>`).join('')}</select>`)).join('')}
+    <p class="muted" style="margin:0">Con esto la app avisa cuando toca repetir cada tratamiento. Viene puesto así: paramixovirus cada año y desparasitación interna y externa cada 6 meses. Solo avisa de los palomos que ya lo tienen apuntado una vez. Coccidios y tricomonas no tienen aviso: se apuntan a cada palomo cuando da síntomas. Se guarda en este dispositivo.</p>
+    ${Object.keys(TRATOS).filter(k => k !== 'otro' && !TRATOS[k].individual).map(k => campo('f-' + k, TRATOS[k].nombre, `<select data-freq="${k}" id="f-${k}">${FRECUENCIAS.map(n => `<option value="${n}" ${mesesDe(k) === n ? 'selected' : ''}>${textoFrecuencia(n)}</option>`).join('')}</select>`)).join('')}
   </div>`;
 }
 function tratoRow(pid, t) {
@@ -82,7 +85,7 @@ function tratoRow(pid, t) {
 }
 function seccionSanidad(p) {
   const ts = tratosDe(p);
-  const vac = Object.keys(TRATOS).filter(k => k !== 'otro' && (k === 'paramixovirus' || (mesesDe(k) > 0 && ts.some(t => t.tipo === k))));
+  const vac = Object.keys(TRATOS).filter(k => k !== 'otro' && !TRATOS[k].individual && (k === 'paramixovirus' || (mesesDe(k) > 0 && ts.some(t => t.tipo === k))));
   const resumen = vac.map(k => { const [c, txt] = estadoVacuna(p, k); return `<div class="dato"><span>${TRATOS[k].nombre}</span><b class="san-${c}">${txt}</b></div>`; }).join('');
   const anios = [...new Set(ts.map(anioTrato))];
   return `<p class="seccion">Sanidad${ts.length ? ' · ' + ts.length : ''}</p>

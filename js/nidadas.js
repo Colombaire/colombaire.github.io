@@ -11,7 +11,7 @@ const ESTADO_HUEVO = { '': 'Sin revisar', fertil: 'Fértil', claro: 'Claro (sin 
 const ESTADO_PICHON = { vivo: 'Vivo', muerto: 'Murió', vendido: 'Vendido o regalado' };
 // Plazos que se pueden cambiar (se guardan en este dispositivo): días de incubación desde el segundo huevo y día en que se anilla.
 const diasIncubacion = () => Number(leerJSON('criaIncubacion', 18)) || 18;
-const diasAnillado = () => Number(leerJSON('criaAnillado', 7)) || 7;
+const diasAnillado = () => Number(leerJSON('criaAnillado', 8)) || 8;
 const FECHA_OK = /^\d{4}-\d{2}-\d{2}$/;
 const fechaValida = f => (typeof f === 'string' && FECHA_OK.test(f) && !Number.isNaN(Date.parse(f)) ? f : '');
 
@@ -57,6 +57,33 @@ function avisosCria(hoy = today()) {
   }
   return out.sort((a, b) => a.dias - b.dias);
 }
+/* Avisos para el calendario del móvil (archivo .ics con alarma): eclosión de la pareja y anillado de cada pichón.
+   Una app instalada no puede sonar sola con el móvil cerrado; el calendario del teléfono sí. */
+function eventosCalendario(n) {
+  const par = nombresPareja(n), out = [];
+  const e = eclosionEsperada(n);
+  if (e && !(n.pichones || []).length) {
+    out.push({ fecha: e, titulo: `Nace el pichón de ${par}`, desc: 'Fecha calculada: 18 días desde el segundo huevo.' });
+    out.push({ fecha: sumarDias(e, diasAnillado()), titulo: `Anillar el pichón de ${par}`, desc: `A los ${diasAnillado()} días de nacer.` });
+  }
+  for (const h of n.pichones || []) {
+    if (pichonVivo(h) && !h.anilla && fechaValida(h.nacimiento)) out.push({ fecha: sumarDias(h.nacimiento, diasAnillado()), titulo: `Anillar el pichón de ${par}`, desc: `Nació el ${fechaES(h.nacimiento)}.` });
+  }
+  return out;
+}
+const icsTexto = s => String(s).replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+function crearICS(n) {
+  const ev = eventosCalendario(n), sello = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
+  const lineas = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Colombaire//Cria//ES', 'CALSCALE:GREGORIAN'];
+  ev.forEach((x, i) => {
+    const d = x.fecha.replace(/-/g, '');
+    lineas.push('BEGIN:VEVENT', `UID:${n.id}-${i}-${d}@colombaire`, `DTSTAMP:${sello}`, `DTSTART:${d}T090000`, `DTEND:${d}T093000`,
+      `SUMMARY:${icsTexto(x.titulo)}`, `DESCRIPTION:${icsTexto(x.desc)}`,
+      'BEGIN:VALARM', 'ACTION:DISPLAY', `DESCRIPTION:${icsTexto(x.titulo)}`, 'TRIGGER:PT0S', 'END:VALARM', 'END:VEVENT');
+  });
+  lineas.push('END:VCALENDAR');
+  return lineas.join('\r\n') + '\r\n';
+}
 const textoAvisoCria = a => a.tipo === 'eclosion'
   ? (a.dias < 0 ? `Debería haber eclosionado el ${fechaES(a.fecha)}` : a.dias === 0 ? 'Eclosión esperada hoy' : `Eclosión esperada el ${fechaES(a.fecha)} (en ${a.dias} ${a.dias === 1 ? 'día' : 'días'})`)
   : `Pichón de ${a.edad} ${a.edad === 1 ? 'día' : 'días'} por anillar`;
@@ -68,7 +95,9 @@ function historialPareja(machoId, hembraId) {
   const fichas = pich.filter(tieneFicha).map(h => state.palomos.get(h.palomoId));
   const conRes = fichas.filter(p => resultsOf(p.id).length);
   const puestos = conRes.map(p => bestResult(p.id)).map(r => Number(r && r.puesto)).filter(x => x > 0);
-  return { nidadas: ns.length, huevos: ns.reduce((s, n) => s + (n.huevos || []).length, 0), pichones: pich.length, vivos: pich.filter(pichonVivo).length,
+  const huevos = ns.reduce((s, n) => s + (n.huevos || []).length, 0);
+  // Éxito de cría: pichones logrados sobre huevos puestos (solo si hay huevos apuntados).
+  return { nidadas: ns.length, huevos, pichones: pich.length, vivos: pich.filter(pichonVivo).length, exito: huevos ? Math.min(100, Math.round(pich.length / huevos * 100)) : null,
     fichas: fichas.length, conResultados: conRes.length, mejorPuesto: puestos.length ? Math.min(...puestos) : null };
 }
 // Todas las parejas con nidadas, las de más pichones primero.
@@ -81,7 +110,7 @@ function parejasCria() {
 async function crearFichaPichon(nidadaId, pichonId) {
   const n = state.nidadas.get(nidadaId), h = n && (n.pichones || []).find(x => x.id === pichonId);
   if (!n || !h || tieneFicha(h) || !(h.anilla || h.nombre)) return null;
-  const p = { id: uid(), nombre: h.nombre || '', anilla: h.anilla || '', sexo: h.sexo === 'H' ? 'H' : 'M', uso: 'competicion', estado: 'palomar',
+  const p = { id: uid(), nombre: h.nombre || '', anilla: h.anilla || '', plumaje: h.plumaje || '', sexo: h.sexo === 'H' ? 'H' : 'M', uso: 'competicion', estado: 'palomar',
     anio: String((fechaValida(h.nacimiento) || fechaValida(n.fecha1) || today()).slice(0, 4)), creado: Date.now() };
   if (n.machoId && state.palomos.has(n.machoId)) p.padreId = n.machoId;
   if (n.hembraId && state.palomos.has(n.hembraId)) p.madreId = n.hembraId;
@@ -166,13 +195,19 @@ function viewNidada(id) {
     if (m) n.machoNombre = nameOf(m); if (h) n.hembraNombre = nameOf(h);
     await put('nidadas', n);
   };
-  const eclo = () => { const e = eclosionEsperada(n); return e ? `Eclosión esperada: <b>${esc(fechaES(e))}</b> (${diasIncubacion()} días desde el segundo huevo)` : 'Apunte la fecha del primer huevo para calcular la eclosión.'; };
+  const eclo = () => {
+    const e = eclosionEsperada(n); if (!e) return 'Apunte la fecha del primer huevo para calcular la eclosión.';
+    return `Segundo huevo: <b>${esc(fechaES(fechaBaseIncubacion(n)))}</b>${n.fecha2 ? '' : ' (calculado)'}<br>Nace el pichón: <b>${esc(fechaES(e))}</b> (${diasIncubacion()} días desde el segundo huevo)<br>Anillar: <b>${esc(fechaES(sumarDias(e, diasAnillado())))}</b> (${diasAnillado()} días después de nacer)`;
+  };
+  const datosPadre = (id, copia, rol) => { const p = state.palomos.get(id); return `<div class="dato"><span>${rol}</span><b>${esc(p ? [nameOf(p), p.anilla, p.plumaje].filter(Boolean).join(' · ') : (copia || 'Palomo borrado'))}</b></div>`; };
   const pintar = () => {
     const hist = historialPareja(n.machoId, n.hembraId);
     const enlace = (pid, copia) => state.palomos.has(pid) ? `<a href="#/p/${esc(pid)}">${esc(nameOf(state.palomos.get(pid)))}</a>` : esc(copia || 'Palomo borrado');
     app.innerHTML = `<h1 class="grande">${enlace(n.machoId, n.machoNombre)} × ${enlace(n.hembraId, n.hembraNombre)}</h1>
       <p class="resumen">${esc(FASE_TXT[faseNidada(n)])} · ${esc(n.anio)}</p>
-      <div class="card"><p id="eclo" style="margin:0">${eclo()}</p>
+      <div class="datos">${datosPadre(n.machoId, n.machoNombre, 'Padre')}${datosPadre(n.hembraId, n.hembraNombre, 'Madre')}</div>
+      <div class="card mt"><p id="eclo" style="margin:0">${eclo()}</p>
+        ${eventosCalendario(n).length ? `<button type="button" class="btn tonal mt" id="ics">Poner los avisos en el calendario del móvil</button><p class="muted" style="margin:8px 0 0">Crea una alarma a las 9:00 el día de cada fecha.</p>` : ''}
         ${campo('fecha1', 'Primer huevo', `<input id="fecha1" type="date" data-k="fecha1" value="${esc(n.fecha1)}">`)}
         ${campo('fecha2', 'Segundo huevo (si no lo apunta, se cuentan 2 días)', `<input id="fecha2" type="date" data-k="fecha2" value="${esc(n.fecha2)}">`)}</div>
       <p class="seccion">Huevos · ${(n.huevos || []).length}</p>
@@ -186,17 +221,19 @@ function viewNidada(id) {
         return `<div class="card mt" data-pi="${i}"><b>Pichón ${i + 1}${edad !== null ? ` · ${edad} ${edad === 1 ? 'día' : 'días'}` : ''}</b>
           ${campo('nac' + i, 'Nació el', `<input id="nac${i}" type="date" data-k="nacimiento" value="${esc(h.nacimiento)}">`)}
           ${campo('ani' + i, 'Anilla', `<input id="ani${i}" data-k="anilla" value="${esc(h.anilla)}" placeholder="Cuando se anille" autocapitalize="characters">`)}
+          ${campo('plu' + i, 'Plumaje', `<input id="plu${i}" data-k="plumaje" list="plumajes" value="${esc(h.plumaje)}" placeholder="Ej.: Toscado">`)}
           ${campo('nom' + i, 'Nombre (opcional)', `<input id="nom${i}" data-k="nombre" value="${esc(h.nombre)}" autocapitalize="words">`)}
           ${campo('sex' + i, 'Sexo', `<select id="sex${i}" data-k="sexo"><option value="M" ${h.sexo !== 'H' ? 'selected' : ''}>Macho</option><option value="H" ${h.sexo === 'H' ? 'selected' : ''}>Hembra</option></select>`)}
           ${campo('est' + i, 'Estado', `<select id="est${i}" data-k="estado">${Object.entries(ESTADO_PICHON).map(([v, l]) => `<option value="${v}" ${(h.estado || 'vivo') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`)}
           ${ficha ? `<a class="btn tonal mt" href="#/p/${esc(ficha.id)}">Ver su ficha</a>` : `<button type="button" class="btn tonal mt" data-ficha="${i}">Crear su ficha</button>`}
           <button type="button" class="btn danger mt" data-delp="${i}">Quitar este pichón</button></div>`;
       }).join('')}
+      <datalist id="plumajes">${PLUMAJES.map(x => `<option value="${x}">`).join('')}</datalist>
       <button class="btn sec mt" type="button" id="addp">${ic('plus')} Añadir un pichón</button>
       <p class="seccion">Notas</p>
       <div class="campo"><textarea id="notas" data-k="notas" placeholder="Nido, jaula, cómo fue la puesta…">${esc(n.notas)}</textarea></div>
       <p class="seccion">Esta pareja</p>
-      <div class="card"><p style="margin:0">${hist.nidadas} ${hist.nidadas === 1 ? 'nidada' : 'nidadas'} · ${hist.pichones} ${hist.pichones === 1 ? 'pichón' : 'pichones'}${hist.conResultados ? ` · ${hist.conResultados} con resultados` : ''}${hist.mejorPuesto ? ` · mejor puesto ${hist.mejorPuesto}º` : ''}</p>
+      <div class="card"><p style="margin:0">${hist.nidadas} ${hist.nidadas === 1 ? 'nidada' : 'nidadas'} · ${hist.pichones} ${hist.pichones === 1 ? 'pichón' : 'pichones'}${hist.exito !== null ? ` · éxito de cría ${hist.exito}% (pichones sobre huevos)` : ''}${hist.conResultados ? ` · ${hist.conResultados} con resultados` : ''}${hist.mejorPuesto ? ` · mejor puesto ${hist.mejorPuesto}º` : ''}</p>
         ${state.palomos.has(n.machoId) && state.palomos.has(n.hembraId) ? `<a class="btn tonal mt" href="#/arbolpareja/${esc(n.machoId)}/${esc(n.hembraId)}">${ic('tree')} Ver el árbol de la pareja</a>` : ''}</div>
       <button type="button" class="btn danger mt2" id="delnid">Borrar esta nidada</button>`;
   };
@@ -218,11 +255,16 @@ function viewNidada(id) {
     if (k === 'fecha1' && n.fecha1) n.anio = Number(n.fecha1.slice(0, 4));
     await guardar();
     if (k !== 'notas') $('#eclo').innerHTML = eclo();
+    if (k === 'fecha1' || k === 'fecha2') pintar();
   };
   app.onclick = async e => {
     const b = e.target.closest('button'); if (!b) return;
+    if (b.id === 'ics') {
+      await entregarArchivo(new Blob([crearICS(n)], { type: 'text/calendar' }), 'avisos-cria.ics', 'Avisos de cría', 'Abra el archivo para añadir los avisos al calendario', 'descargar');
+      return;
+    }
     if (b.id === 'addh') { n.huevos = [...(n.huevos || []), { id: uid(), estado: '' }]; await guardar(); pintar(); return; }
-    if (b.id === 'addp') { n.pichones = [...(n.pichones || []), { id: uid(), nacimiento: today(), anilla: '', nombre: '', sexo: 'M', estado: 'vivo' }]; await guardar(); pintar(); return; }
+    if (b.id === 'addp') { n.pichones = [...(n.pichones || []), { id: uid(), nacimiento: eclosionEsperada(n) || today(), anilla: '', nombre: '', sexo: 'M', estado: 'vivo' }]; await guardar(); pintar(); return; }
     if (b.dataset.delh !== undefined) { n.huevos.splice(Number(b.dataset.delh), 1); await guardar(); pintar(); return; }
     if (b.dataset.delp !== undefined) {
       if (!confirm('¿Quitar este pichón de la nidada? Si ya tiene ficha, la ficha no se borra.')) return;

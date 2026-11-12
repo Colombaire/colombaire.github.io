@@ -41,7 +41,7 @@ Regla general: nada se sube a GitHub, se publica en Supabase ni se commitea sin 
 
 **3. Datos de configuración que faltan.**
 - Servicio de envío de correo (Resend, Brevo u otro).
-- Cada cuánto se desparasita (interna y externa) y otros tratamientos habituales.
+- ~~Cada cuánto se desparasita y otros tratamientos~~ RESUELTO (12 nov 2026, respuesta del colombicultor): paramixovirus **cada año a todos** los palomos; desparasitación interna y externa **cada 6 meses a todos**; coccidios y tricomonas **solo individual y cuando dan síntomas** (sin aviso). Ya puesto en la app. Cría: segundo huevo a las 44 h (≈ 2 días), pichón a los 18 días, anillado a los **8 días** (antes 7), con alarma en el móvil (archivo de calendario .ics a las 9:00). Pichón: anilla, nombre, nacimiento, plumaje; el pedigrí/línea sale de padre y madre. Pareja: ficha básica y % de éxito de cría. **Posible más adelante:** fecha de destete de los padres, entrada en celo, inicio de entrenamiento (ella lo estudiará). Pendiente: el % de éxito *predicho* de una pareja según los antecedentes del palomar (hoy el % es el histórico de la propia pareja).
 - Dirección donde se publica la app (para el código QR y los correos).
 
 **4. ~~Fase 7 (resto): dividir `app.js`~~ HECHO (11 nov 2026).** `app.js` son ahora 13 archivos en `js/` (base, datos, genética, interfaz, palomos, libreta, editar, sanidad, instalar, familias, copias, acceso, arranque), cargados en ese orden desde `index.html` y guardados por `sw.js` (caché v53). Es un corte sin cambios de código; las 14 pruebas pasan (el cargador de pruebas lee el orden de `index.html`). **Falta:** comprobarlo en el navegador real (no se pudo abrir el panel de vista previa).
