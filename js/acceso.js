@@ -23,6 +23,7 @@ function mensajeError(e) {
   if (/invalid login|invalid credentials/i.test(m)) return 'El correo o la contraseña no son correctos. Si es su primera vez, active su cuenta; si la ha olvidado, pida un código nuevo.';
   if (/token has expired|otp.*expired|expired|invalid.*(token|otp)|otp/i.test(m)) return 'El código no es correcto o ya ha caducado. Pida uno nuevo.';
   if (/only request this after|security purposes/i.test(m)) return 'Espere un minuto antes de pedir otro código.';
+  if (/error sending|sending (confirmation|magic|recovery|email|otp)|smtp|unexpected_failure/i.test(m)) return 'Ahora mismo no se ha podido enviar el correo con el código. No es un fallo suyo: inténtelo de nuevo en unos minutos y, si sigue igual, avise a quien administra la app.';
   if (/rate limit|too many/i.test(m)) return 'Demasiados intentos seguidos. Espere unos minutos y vuelva a probar.';
   if (/failed to fetch|network/i.test(m)) return 'No hay conexión a internet. Inténtelo de nuevo cuando tenga cobertura.';
   if (/different from the old/i.test(m)) return 'La contraseña nueva tiene que ser distinta de la anterior.';
@@ -36,7 +37,27 @@ function validarClave(c, correo) {
   if (CLAVES_FLOJAS.includes(c.toLowerCase()) || (correo && c.toLowerCase() === correo.toLowerCase())) return 'Esa contraseña es demasiado fácil de adivinar. Elija otra.';
   return '';
 }
-const cabeceraAcceso = '<p class="eyebrow-c">Colombicultura</p><h1 class="grande">Colombaire</h1>';
+// Guardar la contraseña de verdad en el gestor de contraseñas del dispositivo (Credential Management API).
+// La app nunca guarda la contraseña por su cuenta: la custodia el navegador/móvil, que la rellena al entrar.
+async function guardarCredencial(email, password) {
+  try {
+    if (window.PasswordCredential && navigator.credentials && email && password) {
+      await navigator.credentials.store(new PasswordCredential({ id: email, password, name: email }));
+      return true;
+    }
+  } catch (e) { /* el navegador no lo permite: se usará el aviso normal de «guardar contraseña» */ }
+  return false;
+}
+async function credencialGuardada() {
+  try {
+    if (window.PasswordCredential && navigator.credentials) {
+      const c = await navigator.credentials.get({ password: true, mediation: 'optional' });
+      if (c && c.id && c.password) return c;
+    }
+  } catch (e) { /* sin credencial */ }
+  return null;
+}
+const cabeceraAcceso ='<p class="eyebrow-c">Colombicultura</p><h1 class="grande">Colombaire</h1>';
 function viewAcceso(estado) {
   document.title = 'Entrar · Colombaire';
   document.body.dataset.top = 'no';
@@ -84,6 +105,12 @@ function viewEntrar() {
     <div class="entrar-links">${enlaces}</div></div>`;
   app.querySelectorAll('[data-m]').forEach(b => { b.onclick = () => { entrada.modo = b.dataset.m; if (['activar', 'olvido'].includes(b.dataset.m)) entrada.motivo = b.dataset.m; entrada.correo = ($('#ce') && $('#ce').value.trim()) || entrada.correo; route(); }; });
   const ver = $('#ver'); if (ver) ver.onchange = () => { $('#cc').type = ver.checked ? 'text' : 'password'; };
+  // Si el dispositivo tiene una contraseña guardada, se rellena sola y se entra con un toque.
+  if (m === 'entrar') credencialGuardada().then(c => {
+    if (!c || !$('#ce') || !$('#ce').isConnected) return;
+    $('#ce').value = c.id; $('#cc').value = c.password;
+    const b = $('#eok'); if (b) { b.textContent = 'Entrar con la contraseña guardada'; }
+  });
   const aviso = (t, ok) => { $('#eerr').innerHTML = `<p class="${ok ? 'ok-msg' : 'err'}">${esc(t)}</p>`; };
   const pedirCodigo = async email => {
     const { error } = await nube.sb.auth.signInWithOtp({ email, options: { shouldCreateUser: false } });
@@ -126,6 +153,7 @@ function viewEntrar() {
         if (!password) { b.disabled = false; b.textContent = texto; return aviso('Escriba su contraseña.'); }
         const { error } = await nube.sb.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        guardarCredencial(email, password);
         toast('Bienvenido');
       }
     } catch (x) { aviso(mensajeError(x)); }
@@ -140,6 +168,7 @@ function viewElegirClave() {
     <div class="card mt2"><h2 style="margin:0 0 6px">${voluntario ? 'Cambiar la contraseña' : entrada.motivo === 'olvido' ? 'Elija su contraseña nueva' : 'Su cuenta está activada'}</h2>
       <p class="muted" style="margin:0">${voluntario ? 'Escriba la contraseña nueva.' : entrada.motivo === 'olvido' ? 'Hemos comprobado su correo. Elija una contraseña nueva: con ella entrará la próxima vez. Apúntela en un sitio seguro.' : 'Hemos comprobado su correo. Para terminar, elija una contraseña solo suya: con ella entrará la próxima vez, sin necesitar códigos. Apúntela en un sitio seguro.'}</p>
       <form id="fn" novalidate>
+        <input type="email" autocomplete="username" value="${esc((nube.sesion && nube.sesion.user && nube.sesion.user.email) || '')}" hidden readonly>
         ${campo('cn', 'Contraseña nueva', '<input id="cn" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres, con un número">')}
         ${campo('cn2', 'Repítala', '<input id="cn2" type="password" autocomplete="new-password" placeholder="La misma contraseña">')}
         <label class="chk"><input type="checkbox" id="ver"> Mostrar la contraseña</label>
@@ -162,6 +191,7 @@ function viewElegirClave() {
     if (error) { b.disabled = false; b.textContent = 'Guardar la contraseña'; return err(mensajeError(error)); }
     if (nube.sesion) nube.sesion = { ...nube.sesion, user: { ...nube.sesion.user, user_metadata: { ...(nube.sesion.user.user_metadata || {}), clave_elegida: true } } };
     nube.cambiandoClave = false; nube.voluntario = false;
+    guardarCredencial(correo, c);
     toast(voluntario ? 'Contraseña cambiada' : 'Contraseña guardada');
     location.hash = voluntario ? '#/mas' : '#/'; route(); sincronizar();
   };

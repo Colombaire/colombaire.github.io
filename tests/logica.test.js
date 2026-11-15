@@ -89,6 +89,7 @@ test('mensajes de error de acceso, en español', () => {
   assert.match(ev("mensajeError({ message: 'Token has expired or is invalid' })"), /código/);
   assert.match(ev("mensajeError({ message: 'For security purposes, you can only request this after 49 seconds' })"), /minuto/);
   assert.match(ev("mensajeError({ message: 'Failed to fetch' })"), /conexión/);
+  assert.match(ev("mensajeError({ message: 'Error sending magic link email' })"), /enviar el correo/);
   assert.match(ev("mensajeError({ message: 'New password should be different from the old password.' })"), /distinta/);
 });
 
