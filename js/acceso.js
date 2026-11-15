@@ -57,13 +57,18 @@ async function credencialGuardada() {
   } catch (e) { /* sin credencial */ }
   return null;
 }
-const cabeceraAcceso ='<p class="eyebrow-c">Colombicultura</p><h1 class="grande">Colombaire</h1>';
+const cabeceraAcceso = '<section class="hero-pal hero-entrada"><div class="hero-marca"><img class="hero-logo" src="logo.png" alt="Colombaire"><div class="hero-fila"><div class="hero-nombre">Colombaire</div></div></div></section><p class="eyebrow-c entrada-lema">Sus palomos, su pedigrí y sus concursos, siempre a mano</p>';
 function viewAcceso(estado) {
   document.title = 'Entrar · Colombaire';
   document.body.dataset.top = 'no';
-  if (estado === 'noservicio') return viewSinServicio();
-  if (estado === 'clave') return viewElegirClave();
-  return viewEntrar();
+  if (estado === 'noservicio') viewSinServicio();
+  else if (estado === 'clave') viewElegirClave();
+  else viewEntrar();
+  // El nombre «Colombaire» de la banda del logo se ajusta al tamaño de la banda.
+  if (typeof ajustarNombrePalomar === 'function') {
+    ajustarNombrePalomar();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajustarNombrePalomar);
+  }
 }
 function viewSinServicio() {
   const sinConfig = !nubeConfigurada();
@@ -99,7 +104,6 @@ function viewEntrar() {
     verificar: `<button type="button" class="btn sec" id="reenviar" disabled>Pedir otro código</button><button type="button" class="enlace" data-m="${entrada.motivo}">Cambiar de correo</button>`,
   }[m];
   app.innerHTML = `<div class="entrar">${cabeceraAcceso}
-    <p class="resumen">Sus palomos, su pedigrí y sus concursos, siempre a mano.</p>
     <div class="card mt2"><h2 style="margin:0 0 6px">${titulo}</h2><p class="muted" style="margin:0 0 4px">${ayuda}</p>
       <form id="fe" novalidate>${campos}<div id="eerr"></div><button class="btn mt2" type="submit" id="eok">${boton}</button></form></div>
     <div class="entrar-links">${enlaces}</div></div>`;

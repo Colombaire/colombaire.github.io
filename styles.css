@@ -800,3 +800,9 @@ html { font-size: 17px; }
 /* Botón de editar el nombre: solo el lápiz, abajo a la izquierda de la portada */
 .hero-pal > .hero-edit { position: absolute; right: 6px; bottom: 6px; left: auto; top: auto; transform: none; width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center; color: #B5966A; opacity: .95; z-index: 3; }
 .hero-pal > .hero-edit svg { width: 22px; height: 22px; }
+
+/* Pantalla de entrada: misma cabecera vino con el logo y «Colombaire» sobre la banda; el formulario va debajo */
+.entrar { padding-top: 0; }
+.hero-entrada { margin: 0 -16px; padding-top: calc(env(safe-area-inset-top) + 8px); }
+.entrada-lema { text-align: center; margin: 14px 6px 6px; color: var(--ink); font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; }
+body.sin-sesion .entrar .card { margin-top: 14px; }
