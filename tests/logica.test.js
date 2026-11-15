@@ -93,6 +93,13 @@ test('mensajes de error de acceso, en español', () => {
   assert.match(ev("mensajeError({ message: 'New password should be different from the old password.' })"), /distinta/);
 });
 
+test('sin cuenta la app se abre directamente; la pantalla de entrada solo si se pide', () => {
+  const { ev } = cargarApp();
+  assert.equal(ev('estadoAcceso()'), 'ok');
+  ev('nube.pidiendoEntrada = true');
+  assert.notEqual(ev('estadoAcceso()'), 'ok');
+});
+
 test('copias: el nombre sigue el patrón que la rotación se atreve a borrar', () => {
   const { ev } = cargarApp();
   assert.match(ev('nombreCopia(true)'), /^colombaire-copia-\d{4}-\d{2}-\d{2}-\d{4}\.json$/);

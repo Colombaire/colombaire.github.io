@@ -281,7 +281,8 @@ function conectarBloqueCopia() {
 }
 // Recuadro de la cuenta: quién ha entrado, última sincronización y acciones.
 function bloqueNube() {
-  if (!nube.sesion) return '';
+  if (!nube.sesion) return `<div class="card"><p style="margin:0"><b>Sin cuenta</b></p><p class="muted" style="margin:6px 0 0">Sus palomos se guardan solo en este dispositivo. Si entra con una cuenta, también se guardarán en internet y podrá verlos desde otro móvil.</p></div>
+    <button class="btn mt" type="button" id="nentrar">Entrar con mi cuenta</button>`;
   const cuando = nube.ultima ? fechaHora(nube.ultima) : 'todavía no';
   return `<div class="card">
       <div class="dato" style="padding:0 0 12px"><span>Cuenta</span><b>${esc(nube.sesion.user.email)}</b></div>
@@ -297,6 +298,7 @@ function conectarBloqueNube() {
   if ($('#nsync')) $('#nsync').onclick = async () => { $('#nsync').textContent = 'Guardando…'; await sincronizar(); toast(nube.error ? 'No se pudo guardar' : 'Guardado en la nube'); route(); };
   if ($('#ncambiar')) $('#ncambiar').onclick = () => { nube.cambiandoClave = true; nube.voluntario = true; route(); };
   if ($('#nsalir')) $('#nsalir').onclick = cerrarSesion;
+  if ($('#nentrar')) $('#nentrar').onclick = () => { nube.pidiendoEntrada = true; entrada.modo = 'entrar'; route(); };
 }
 function viewMas() {
   setHeader('Mi cuenta', false);
@@ -305,7 +307,7 @@ function viewMas() {
     <div id="nube">${bloqueNube()}</div>
     <p class="seccion">Mis datos</p>
     <div class="card"><p style="margin-top:0"><b>${state.palomos.size} palomos · ${state.resultados.size} resultados</b></p>
-      <p class="muted" style="margin-bottom:0">Están en su cuenta y en este dispositivo, y solo usted los ve. Haga además una copia en un archivo de vez en cuando y guárdela en otro sitio (por ejemplo, en el ordenador). Si algo falla, la copia le permite recuperarlo todo.</p></div>
+      <p class="muted" style="margin-bottom:0">${nube.sesion ? 'Están en su cuenta y en este dispositivo, y solo usted los ve.' : 'Están solo en este dispositivo.'} Haga además una copia en un archivo de vez en cuando y guárdela en otro sitio (por ejemplo, en el ordenador). Si algo falla, la copia le permite recuperarlo todo.</p></div>
     <p class="seccion">Copia en un archivo</p>
     <button class="btn" type="button" id="exp">${ic('down')} Guardar una copia</button>
     <label class="btn sec mt"><input type="file" accept="application/json,.json" id="imp" hidden>${ic('up')} Recuperar una copia</label>

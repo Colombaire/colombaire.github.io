@@ -12,6 +12,7 @@ const entrada = { modo: yaEntroAqui() ? 'entrar' : 'activar', correo: '', hasta:
 let accesoMostrado = null;
 // Qué debe ver el usuario: la app (ok), la entrada, la elección de contraseña o un aviso de servicio no disponible.
 function estadoAcceso() {
+  if (!nube.sesion && !nube.pidiendoEntrada) return 'ok'; // sin cuenta: la app se abre directamente con los datos de este dispositivo
   if (!nubeConfigurada() || !window.supabase || !nube.sb) return 'noservicio';
   if (!nube.sesion) return 'entrar';
   const md = (nube.sesion.user && nube.sesion.user.user_metadata) || {};
@@ -57,7 +58,7 @@ async function credencialGuardada() {
   } catch (e) { /* sin credencial */ }
   return null;
 }
-const cabeceraAcceso = '<section class="hero-pal hero-entrada"><div class="hero-marca"><img class="hero-logo" src="logo.png" alt="Colombaire"><div class="hero-fila"><div class="hero-nombre">Colombaire</div></div></div></section><p class="eyebrow-c entrada-lema">Sus palomos, su pedigrí y sus concursos, siempre a mano</p>';
+const cabeceraAcceso = '<section class="hero-pal hero-entrada"><div class="hero-marca"><img class="hero-logo" src="media/cabecera.png" alt="Fe de Rates"><div class="hero-fila"><div class="hero-nombre">Colombaire</div></div></div></section><p class="eyebrow-c entrada-lema">Sus palomos, su pedigrí y sus concursos, siempre a mano</p>';
 function viewAcceso(estado) {
   document.title = 'Entrar · Colombaire';
   document.body.dataset.top = 'no';
@@ -98,7 +99,7 @@ function viewEntrar() {
   }[m];
   const boton = { entrar: 'Entrar', activar: 'Enviarme el código', olvido: 'Enviarme el código', verificar: 'Comprobar el código' }[m];
   const enlaces = {
-    entrar: '<button type="button" class="btn sec" data-m="activar">Es mi primera vez: activar mi cuenta</button><button type="button" class="enlace" data-m="olvido">He olvidado mi contraseña</button>',
+    entrar: '<button type="button" class="btn sec" data-m="activar">Es mi primera vez: activar mi cuenta</button><button type="button" class="enlace" data-m="olvido">He olvidado mi contraseña</button><button type="button" class="enlace" id="sincuenta">Seguir sin cuenta</button>',
     activar: '<button type="button" class="btn sec" data-m="entrar">Ya tengo contraseña: entrar</button><button type="button" class="enlace" data-m="olvido">He olvidado mi contraseña</button>',
     olvido: '<button type="button" class="btn sec" data-m="entrar">Volver a «Entrar»</button><button type="button" class="enlace" data-m="activar">Es mi primera vez: activar mi cuenta</button>',
     verificar: `<button type="button" class="btn sec" id="reenviar" disabled>Pedir otro código</button><button type="button" class="enlace" data-m="${entrada.motivo}">Cambiar de correo</button>`,
@@ -108,6 +109,7 @@ function viewEntrar() {
       <form id="fe" novalidate>${campos}<div id="eerr"></div><button class="btn mt2" type="submit" id="eok">${boton}</button></form></div>
     <div class="entrar-links">${enlaces}</div></div>`;
   app.querySelectorAll('[data-m]').forEach(b => { b.onclick = () => { entrada.modo = b.dataset.m; if (['activar', 'olvido'].includes(b.dataset.m)) entrada.motivo = b.dataset.m; entrada.correo = ($('#ce') && $('#ce').value.trim()) || entrada.correo; route(); }; });
+  if ($('#sincuenta')) $('#sincuenta').onclick = () => { nube.pidiendoEntrada = false; location.hash = '#/mas'; route(); };
   const ver = $('#ver'); if (ver) ver.onchange = () => { $('#cc').type = ver.checked ? 'text' : 'password'; };
   // Si el dispositivo tiene una contraseña guardada, se rellena sola y se entra con un toque.
   if (m === 'entrar') credencialGuardada().then(c => {
@@ -182,7 +184,7 @@ function viewElegirClave() {
     <div class="entrar-links">${voluntario ? '<button type="button" class="btn sec" id="cancelar">Cancelar</button>' : '<button type="button" class="enlace" id="salir">Salir y entrar con otro correo</button>'}</div></div>`;
   $('#ver').onchange = e => { $('#cn').type = $('#cn2').type = e.target.checked ? 'text' : 'password'; };
   if (voluntario) $('#cancelar').onclick = () => { nube.cambiandoClave = false; nube.voluntario = false; route(); };
-  else $('#salir').onclick = async () => { nube.cambiandoClave = false; await nube.sb.auth.signOut(); };
+  else $('#salir').onclick = async () => { nube.cambiandoClave = false; nube.pidiendoEntrada = true; await nube.sb.auth.signOut(); };
   $('#fn').onsubmit = async e => {
     e.preventDefault();
     const err = t => { $('#eerr').innerHTML = `<p class="err">${esc(t)}</p>`; };
@@ -229,6 +231,6 @@ async function cerrarSesion() {
   }
   await nube.sb.auth.signOut();
   await borrarLocal();
-  nube.ultima = null; entrada.modo = 'entrar'; entrada.correo = '';
+  nube.ultima = null; nube.pidiendoEntrada = false; entrada.modo = 'entrar'; entrada.correo = '';
   location.hash = '#/'; route(); toast('Sesión cerrada');
 }

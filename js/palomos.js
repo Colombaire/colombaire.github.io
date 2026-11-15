@@ -50,7 +50,7 @@ function portadaPalomar() {
   const primeros = [...state.resultados.values()].filter(r => Number(r.puesto) === 1).length;
   return `<section class="hero-pal">
       <div class="hero-marca">
-        <img class="hero-logo" src="logo.png" alt="Colombaire">
+        <img class="hero-logo" src="media/cabecera.png" alt="Fe de Rates">
         <div class="hero-fila"><div class="hero-nombre">${nombre ? nombrePalomarHtml(nombre) : 'Palomar'}</div></div>
       </div>
       <button type="button" class="hero-edit" id="pEdit" aria-label="Cambiar el nombre del palomar" title="Cambiar el nombre">${ic('edit')}</button>
