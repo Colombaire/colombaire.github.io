@@ -17,25 +17,89 @@ function resumenPalomar() {
   return [`${enCasa.length} ${enCasa.length === 1 ? 'palomo' : 'palomos'}`, comp ? `${comp} ${comp === 1 ? 'compite' : 'compiten'}` : '', cria ? `${cria} ${cria === 1 ? 'cría' : 'crían'}` : ''].filter(Boolean).join(' · ');
 }
 
+/* ---------- Nombre del palomar (lo escribe cada usuario) ---------- */
+const perfilPalomar = () => {
+  const p = leerJSON('perfilPalomar', {});
+  return { nombre: String((p && p.nombre) || '').trim().split(/\s+/)[0].slice(0, 16), licencia: String((p && p.licencia) || '').trim().slice(0, 40) };
+};
+function nombrePalomarHtml(nombre) { return esc(nombre); }
+function editarPerfilPalomar() {
+  const perfil = perfilPalomar();
+  modal.hidden = false;
+  document.body.classList.add('noscroll');
+  history.pushState({ modal: 1 }, '');
+  modal.innerHTML = `<div class="sheet" role="dialog" aria-label="Nombre del palomar">
+    <div class="sheet-h"><h2>Su palomar</h2><button class="icon-btn x" type="button" aria-label="Cerrar"><svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>
+    ${campo('pnom', 'Nombre (una palabra)', `<input id="pnom" maxlength="16" autocapitalize="words" autocomplete="off" placeholder="Una sola palabra. Ej.: Olivos" value="${esc(perfil.nombre)}">`)}
+    <button class="btn mt2" type="button" id="psave">Guardar</button></div>`;
+  $('.x', modal).onclick = closeModal;
+  $('#pnom', modal).oninput = e => { e.target.value = e.target.value.replace(/\s+/g, ''); };
+  $('#pnom', modal).focus();
+  $('#psave', modal).onclick = () => {
+    guardarJSON('perfilPalomar', { nombre: $('#pnom', modal).value.replace(/\s+/g, '').slice(0, 16) });
+    closeModal();
+    viewLista();
+    toast('Guardado');
+  };
+}
+function portadaPalomar() {
+  const { nombre } = perfilPalomar();
+  const enCasa = [...state.palomos.values()].filter(p => (p.estado || 'palomar') === 'palomar').length;
+  const anio = String(new Date().getFullYear());
+  const parejas = [...state.nidadas.values()].filter(n => String(n.anio) === anio).length;
+  const primeros = [...state.resultados.values()].filter(r => Number(r.puesto) === 1).length;
+  return `<section class="hero-pal">
+      <div class="hero-marca">
+        <img class="hero-logo" src="logo.png" alt="Colombaire">
+        <div class="hero-fila"><div class="hero-nombre">${nombre ? nombrePalomarHtml(nombre) : 'Palomar'}</div></div>
+      </div>
+      <button type="button" class="hero-edit" id="pEdit" aria-label="Cambiar el nombre del palomar" title="Cambiar el nombre">${ic('edit')}</button>
+    </section>
+    <div class="contadores">
+      <div><b>${enCasa}</b><span>${enCasa === 1 ? 'palomo' : 'palomos'}</span></div>
+      <div><b>${parejas}</b><span title="Nidadas de ${anio}">${parejas === 1 ? 'nidada' : 'nidadas'}</span></div>
+      <div class="acc"><b>${primeros || '–'}</b><span title="Primeros puestos en concursos">${primeros === 1 ? 'victoria' : 'victorias'}</span></div>
+    </div>`;
+}
+// Encoge el nombre del palomar hasta que quepa entero en el rombo de la cinta del logo.
+function ajustarNombrePalomar() {
+  const n = $('.hero-nombre');
+  if (!n) return;
+  n.style.fontSize = '';
+  let px = parseFloat(getComputedStyle(n).fontSize);
+  while (px > 9 && (n.scrollHeight > n.clientHeight + 1 || n.scrollWidth > n.clientWidth + 1)) { px -= 1; n.style.fontSize = px + 'px'; }
+}
+let ajusteNombreListo = false;
+function conectarPortada() {
+  ajustarNombrePalomar();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(ajustarNombrePalomar);
+  if (!ajusteNombreListo) { ajusteNombreListo = true; window.addEventListener('resize', ajustarNombrePalomar); }
+  const a = $('#pEdit');
+  if (a) a.onclick = editarPerfilPalomar;
+}
+
 function viewLista() {
   setHeader('Mis palomos', false);
   if (!state.palomos.size) {
-    app.innerHTML = `<h1 class="grande">Mis palomos</h1><p class="resumen">Todavía no hay palomos</p>
-      <div class="card empty"><p>Empiece añadiendo su primer palomo. Solo hace falta el nombre o la anilla; lo demás se puede completar después.</p>
+    app.innerHTML = `${portadaPalomar()}
+      <div class="card empty mt2"><p>Empiece añadiendo su primer palomo. Solo hace falta el nombre o la anilla; lo demás se puede completar después.</p>
       <a class="btn mt" href="#/editar/nuevo">${ic('plus')} Añadir mi primer palomo</a>
       <a class="btn tonal mt" href="#/foto">${ic('camera')} Añadir desde la libreta (foto)</a></div>`;
+    conectarPortada();
     return;
   }
-  app.innerHTML = `<h1 class="grande">Mis palomos</h1><p class="resumen">${esc(resumenPalomar())}</p>
+  app.innerHTML = `${portadaPalomar()}
+    <h1 class="subtit">En el palomar</h1>
     ${avisoVacunasLista()}
     ${avisoCriaLista()}
-    <div class="row accesos"><a class="btn sec" href="#/concursos">${ic('trophy')} Concursos</a><a class="btn sec" href="#/completar">${ic('edit')} Por completar${totalPorCompletar() ? ' · ' + totalPorCompletar() : ''}</a></div>
+    <div class="row accesos"><a class="btn sec" href="#/concursos">${ic('trophy')} Concursos</a><a class="btn sec" href="#/completar">${ic('edit')} Completar${totalPorCompletar() ? ' · ' + totalPorCompletar() : ''}</a></div>
     <a class="btn tonal desde-foto" href="#/foto">${ic('camera')} Añadir desde la libreta (foto)</a>
     <div class="buscar">${ic('search')}<input id="q" type="search" placeholder="Buscar nombre o anilla" value="${esc(ui.q)}" aria-label="Buscar"></div>
     ${chips('filtro', [['todos', 'Todos'], ['competicion', 'Compiten'], ['cria', 'Crían']], ui.filtro)}
     <label class="chk"><input type="checkbox" id="vt" ${ui.verTodos ? 'checked' : ''}> Ver también los que ya no están y los de pedigrí</label>
     <div id="res"></div>${avisoCopiaPendiente()}${backupReminder()}`;
   conectarAvisoCopia();
+  conectarPortada();
   const draw = () => {
     const nq = norm(ui.q).replace(/\s+/g, '');
     const l = [...state.palomos.values()].filter(p => {
@@ -86,8 +150,9 @@ function viewFicha(id) {
     ${fotoSegura(p.foto)
       ? `<div class="foto"><img src="${esc(p.foto)}" alt="Foto de ${esc(nameOf(p))}"></div>`
       : `<a class="foto vacia" href="#/editar/${id}"><span class="ini">${esc(iniciales(p))}</span><span>${ic('camera')} Añadir una foto</span></a>`}
-    <h2 class="pname">${esc(nameOf(p))}</h2>
-    ${p.anilla && p.nombre ? `<p class="anilla">Anilla ${esc(p.anilla)}</p>` : ''}
+    <div class="carnet-cab"><span>Ficha</span><span>${esc([sexoTxt(p), p.anio].filter(Boolean).join(' · '))}</span></div>
+    <div class="anilla-grande${p.anilla ? '' : ' sin'}">${esc(p.anilla || 'Sin anilla')}</div>
+    ${p.nombre ? `<h2 class="pname">${esc(p.nombre)}</h2>` : ''}
 
     <p class="seccion">Datos</p>
     <div class="datos">${dato('Sexo', sexoTxt(p))}${dato('Plumaje', p.plumaje)}${dato('Año', p.anio)}${dato('Uso', USO[p.uso])}${dato('Dónde está', ESTADO[p.estado || 'palomar'])}${dato('Criador', p.criador)}</div>

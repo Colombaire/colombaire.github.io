@@ -86,7 +86,7 @@ async function borrarLocal() {
   await txDone(t);
   TABLAS.forEach(n => state[n].clear()); invalidarGenetica();
   guardarJSON('borradosPendientes', []);
-  try { ['propietario', 'ultimaCopia', 'ultimaSync', 'copiaAuto'].forEach(k => localStorage.removeItem(k)); } catch (e) { /* sin almacenamiento */ }
+  try { ['propietario', 'ultimaCopia', 'ultimaSync', 'copiaAuto', 'perfilPalomar'].forEach(k => localStorage.removeItem(k)); } catch (e) { /* sin almacenamiento */ }
   copiaAuto.handle = null; copiaAuto.pendiente = false; ajuste('carpeta', null).catch(() => {});
 }
 async function clearAll() {
